@@ -70,7 +70,7 @@ if __name__ == "__main__":
     label = CTkLabel(
         master=app,
         text="Multi-AI Agent Prototype",
-        font=("Consolas", 20),
+        font=("Segoe UI", 20),
         text_color="black"
     )
     label.place(relx=0.5, rely=0.1, anchor=CENTER)
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     label2 = CTkLabel(
         master=app,
         text=f"Input: {question}",
-        font=("Consolas", 15),
+        font=("Segoe UI", 15),
         text_color="black",
         wraplength=600,
         justify="center"
@@ -89,32 +89,32 @@ if __name__ == "__main__":
     # --- Available Agents ---
     label3 = CTkLabel(
         master=app,
-        text="Available Agents: Data Analyst Agent, Planner Agent, Research Agent, Stock Analysis Agent.",
-        font=("Consolas", 15),
+        text="Available Agents:\n- Data Analyst Agent \n- Planner Agent \n- Research Agent\n - Stock Analysis Agent",
+        font=("Segoe UI", 15),
         text_color="black",
         wraplength=600,
         justify="center"
     )
-    label3.place(relx=0.5, rely=0.45, anchor=CENTER)
+    label3.place(relx=0.5, rely=0.52, anchor=CENTER)
 
     # --- Available LLMs ---
     label4 = CTkLabel(
         master=app,
-        text="Available Large Language Models (LLMs): Gemma-3 4B, Llama-3 8B.",
-        font=("Consolas", 15),
+        text="Available Large Language Models (LLMs):\n- Gemma-3 4B\n- Llama-3 8B",
+        font=("Segoe UI", 15),
         text_color="black",
         wraplength=600,
         justify="center"
     )
-    label4.place(relx=0.5, rely=0.55, anchor=CENTER)
+    label4.place(relx=0.5, rely=0.75, anchor=CENTER)
 
     # --- Run Button ---
     btn = CTkButton(
         master=app,
         text="Run",
-        font=("Consolas", 15),
+        font=("Segoe UI", 15),
         command=lambda: run_process_threaded(file_path, question)
     )
-    btn.place(relx=0.5, rely=0.7, anchor=CENTER)
+    btn.place(relx=0.5, rely=0.90, anchor=CENTER)
 
     app.mainloop()
