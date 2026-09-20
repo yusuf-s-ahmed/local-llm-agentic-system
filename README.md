@@ -19,9 +19,9 @@ All of which use Llama-3 8B and Gemma-3 4B, to generate structured, up-to-date i
 | Category             | Details                                                                                                                                                                                                                         |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Question**             | Benchmark our sales performance against competitors in the UK financial sector. Incorporate recent financial news and real-time stock-market data from the Yahoo Finance API, then produce a comprehensive comparative summary. |
-| **Agents**           | Planner · Data Analyst · Researcher · Stock Analyst                                                                                                                                                                             |
+| **Agents**           | Planner, Data Analyst, Researcher, Stock Analyst                                                                                                                                                                             |
 | **Input data**       | `data/sales_data.csv`                                                                                                                                                                                                           |
-| **External tools** | Recent UK financial news · Yahoo Finance API                                                                                                                                                                                    |
+| **External tools** | Recent UK financial news, Yahoo Finance API                                                                                                                                                                                    |
 
 ### Output
 
