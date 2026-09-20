@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from mplfinance.original_flavor import candlestick_ohlc
 import matplotlib
-matplotlib.use('TkAgg')
+matplotlib.use('Agg')
 
 
 
-plt.rcParams['font.family'] = 'monospace'
+plt.rcParams['font.family'] = 'Consolas'
 
 def visualize(tickers: list):
     end = dt.datetime.today()
@@ -40,11 +40,32 @@ def visualize(tickers: list):
         candlestick_ohlc(ax, data.values, width=0.5, colorup='#2ECC71', colordown='#E74C3C')
 
     plt.tight_layout()
-    plt.show(block=False)
-    plt.pause(15)  # show for 15 seconds before continuing
+    plt.savefig("data/stock_plot.png", bbox_inches="tight")
     plt.close(fig)
 
+def plot_stock_data(tickers, stock_data, output_path="data/stock_plot.png"):
+    fig, axes = plt.subplots(
+        len(tickers),
+        1,
+        figsize=(10, 4 * len(tickers)),
+        squeeze=False,
+    )
 
+    for index, ticker in enumerate(tickers):
+        axis = axes[index][0]
+        data = stock_data[ticker]
+
+        axis.plot(data.index, data["Close"])
+        axis.set_title(f"{ticker} Stock Price")
+        axis.set_xlabel("Date")
+        axis.set_ylabel("Price")
+        axis.grid(True)
+
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    return output_path
 
 # Example usage:
 

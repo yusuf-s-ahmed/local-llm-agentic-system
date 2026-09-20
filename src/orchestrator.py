@@ -1,67 +1,90 @@
-# orchestrator.py
+"""Coordinate CSV analysis and launch the optional desktop interface."""
 
-import json
 import traceback
+from pathlib import Path
+
 from agents.planner_agent import handle_csv_upload, select_tools, generate_answer
 from agents.context_memory import get_context_text
+from helpers.agent_trace import emit_trace, traced_call, trace_sink
 
-def log_status(stage: str, message: str):
-    """Prints formatted debug messages for visibility."""
-    print(f"[DEBUG] [{stage}] {message}")
 
-def process_csv_and_question(file_path: str, question: str):
+def log_status(stage: str, message: str, on_log=None):
+    line = f"{stage} {message}"
+    print(line)
+
+    if on_log:
+        on_log(line)
+
+
+def process_csv_and_question(
+    file_path: str,
+    question: str,
+    selected_tools: list[str],
+    selected_llm: str,
+    on_log=None,
+    on_trace=None,
+):
+    events = []
+
+    def record(event):
+        events.append(event)
+        if on_trace:
+            on_trace(event)
+
+    token = trace_sink.set(record)
     try:
-        log_status("0% COMPLETED", f"Starting process for question: '{question}'")
-        log_status("0% COMPLETED", f"Loading CSV from {file_path}")
-        csv_data = handle_csv_upload(file_path)
-        log_status("10% COMPLETED", "CSV successfully loaded")
+        def report(stage, message):
+            log_status(stage, message, on_log)
 
-        log_status("10% COMPLETED", "Selecting tools based on question and CSV data")
-        tools_used = select_tools(question, csv_data)
-        log_status("30% COMPLETED", f"Tools selected: {[t.tool for t in tools_used.tools]}")
+        report("░░░░░░░░░░░░░░░░░░░░░░░░░ 0%", f"\nstarting process for question: \n'{question}'")
+        report("█░░░░░░░░░░░░░░░░░░░░░░░░ 2%", f"loading CSV from '{file_path}'")
 
-        log_status("30% COMPLETED", "Generating final answer using selected tools")
+        csv_data = traced_call("CSV loader", Path(file_path).name, handle_csv_upload, file_path)
+        emit_trace("CSV data + question", "Planner Agent", status="running",
+                   detail=f"{len(csv_data)} rows, {len(csv_data.columns)} columns")
+        report("███░░░░░░░░░░░░░░░░░░░░░░ 10%", "\nCSV successfully loaded")
 
-        # ---
+        tool_preferences = ", ".join(selected_tools) or "let the planner choose"
+        planner_question = (
+            f"{question}\n\n"
+            f"use these selected tools where applicable: {tool_preferences}.\n"
+            f"use this selected LLM: {selected_llm}."
+        )
 
-        final_answer = generate_answer(question, tools_used, csv_data)
+        report("████░░░░░░░░░░░░░░░░░░░░░ 15%", "\nselecting tools")
+        tools_used = traced_call("Planner agent", "LLM / tool selection", select_tools, planner_question, csv_data)
+        emit_trace("planner agent", "tool plan", "execution agents",
+                   detail=", ".join(tool.tool for tool in tools_used.tools))
 
-        # ---
+        report(
+            "█████░░░░░░░░░░░░░░░░░░░░ 20%",
+            f"\ntools selected: {[tool.tool for tool in tools_used.tools]}",
+        )
 
-        log_status("90% COMPLETED", "Final answer generated successfully")
-
-        log_status("90% COMPLETED", "Retrieving context memory")
-        context_text = get_context_text()
+        report("████████░░░░░░░░░░░░░░░░░ 30%", "\ngenerating final answer")
+        final_answer = generate_answer(planner_question, tools_used, csv_data)
+        emit_trace("final answer agent", "summary", status="completed")
 
         result = {
             "tools_used": tools_used.dict(),
             "final_answer": final_answer.dict(),
-            "context_memory": context_text
+            "context_memory": get_context_text(),
+            "agent_trace": events,
         }
 
-        log_status("100% COMPLETED", "Process completed successfully")
+        report("█████████████████████████ 100%", "\nprocess completed successfully")
         return result
 
-    except Exception as e:
-        log_status("ERROR", f"An error occurred: {e}")
+    except Exception as error:
+        report("ERROR", str(error))
         traceback.print_exc()
-        return {"error": str(e)}
+        emit_trace("analysis", status="error", detail=str(error))
+        return {"error": str(error), "agent_trace": events}
+    finally:
+        trace_sink.reset(token)
+
 
 if __name__ == "__main__":
-    file_path = "data/sales_data.csv"
-    question = (
-        "Based on the sales data, benchmark this against our competitors "
-        "in the United Kingdom financial sector, HSBC, researching recent "
-        "financial news, and getting real-time stock data from Yahoo Finance API "
-        "to provide a comprehensive summary."
-    )
+    from ui.desktop import launch_app
 
-    result = process_csv_and_question(file_path, question)
-    print("\n=== FINAL OUTPUT ===")
-    # print(json.dumps(result, indent=4, ensure_ascii=False))
-
-    print(json.dumps(result["tools_used"], indent=4, ensure_ascii=False))
-    print(json.dumps(result["final_answer"], indent=4, ensure_ascii=False))
-
-    print("\n=== CONTEXT MEMORY IS SAVED ===")
-    context = result["context_memory"]
+    launch_app(process_csv_and_question)
