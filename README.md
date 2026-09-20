@@ -51,13 +51,13 @@ Confidence: 0.98
 
 ### How to Run
 
-1. *Clone the Repository*
+1. Clone the Repository
 
    ```Shell
    git clone https://github.com/yusuf-s-ahmed/Multi-AI-Agent-System.git
    cd ai-agents-prototype
    ```
-2. *Install Dependencies*
+2. Install Dependencies
    It is recommended to use a virtual environment. You can create one using:
 
    ```Shell
