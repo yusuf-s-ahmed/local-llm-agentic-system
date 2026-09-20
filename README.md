@@ -1,6 +1,10 @@
-# Multi-AI Agent System
+## Local LLM Agentic System
 
-This project is a multi-agent AI system that dynamically selects between internal data analysis, financial stock data from APIs, and web scraping tools based on user questions. There are 5 agents that communicate their outputs with each other:
+This project is a multi-agent AI system that dynamically selects between internal data analysis, financial stock data from APIs, and web scraping tools based on user questions.
+
+https://github.com/user-attachments/assets/d7f9d383-891a-4e74-abd8-4a2bfb86256c
+
+There are 5 agents that communicate their outputs with each other:
 
 - `planner_agent.py`
 - `researcher_agent.py`
@@ -10,23 +14,28 @@ This project is a multi-agent AI system that dynamically selects between interna
 
 All of which use Llama-3 8B and Gemma-3 4B, to generate structured, up-to-date insights.
 
-### Video Demo:
-
-https://github.com/user-attachments/assets/d7f9d383-891a-4e74-abd8-4a2bfb86256c
-
 ### Input
 
-| Question                                                                                                                                                                                                                    | Agents                                                                           | Data                    |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------- |
-| Based on the sales data, benchmark this against our competitors in the UK financial sector, researching recent financial news, and getting real-time stock data from Yahoo Finance API to provide a comprehensive summary.  | •  data analyst<br />•  planner<br />•  researcher<br />•  stock analyst | `data/sales_data.csv` |
+| Category             | Details                                                                                                                                                                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Question**             | Benchmark our sales performance against competitors in the UK financial sector. Incorporate recent financial news and real-time stock-market data from the Yahoo Finance API, then produce a comprehensive comparative summary. |
+| **Agents**           | Planner · Data Analyst · Researcher · Stock Analyst                                                                                                                                                                             |
+| **Input data**       | `data/sales_data.csv`                                                                                                                                                                                                           |
+| **External tools** | Recent UK financial news · Yahoo Finance API                                                                                                                                                                                    |
 
-### Output:
+### Output
 
 Based on the available data, the company demonstrates consistent revenue growth with a total revenue of $64,000 over the past four quarters, averaging $16,000 per quarter.
 
 The key stock metrics for the tracked companies are as follows:
 
-![1789907576210](image/README/1789907576210.png)
+<p align="center">
+  <img src="data/UBS_graph.png" alt="UBS Graph" width="550">
+</p>
+
+<p align="center">
+  <img src="data/HSBC_graph.png" alt="HSBC Graph" width="550">
+</p>
 
 UBS: Symbol: UBS, Last Price: 41.32, Market Cap: 131,730,634,260.36, Year High: 41.70, Year Low: 25.75, Shares Outstanding: None
 
