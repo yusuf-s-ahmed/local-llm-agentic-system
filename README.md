@@ -107,12 +107,17 @@ ai-agents-prototype
 │   │   ├── researcher_agent.py              # Conducts research by web scraping
 |   |   └── stock_analysis_agent.py          # Fetches and summarises stock data
 |   |   └── planner_agent.py                 # Communicates with research, data analyst, info. retreival agents
-│   │   └── __init__.py                      # Initializes the agents package
+|   |   └── information_retrieval_agent.py   # Fetches data using real-time APIs
+|   |   └── planner_agent.py                 # Communicates with research, data analyst, info. retrieval agents
+│   │   └── __init__.py                      # Initialises the agents package
 │   ├── helpers
 │   │   ├── llm_utils.py        # Utility functions for interacting with the LLM
-│   │   └── __init__.py         # Initializes the helpers package
+│   │   └── __init__.py         # Initialises the helpers package
+│   ├── ui
+│   │   ├── desktop.py        # Interface logic for GUI
+│   │   └── __init__.py         # Initialises the GUI package
 │   ├── orchestrator.py          # Central logic for coordinating agent calls
-│   └── __init__.py             # Initializes the main package
+│   └── __init__.py             # Initialises the main package
 |
 ├── requirements.txt             # Lists project dependencies
 ├── README.md                    # Project documentation
