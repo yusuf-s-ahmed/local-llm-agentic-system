@@ -2,17 +2,15 @@
 
 import pandas as pd
 import json
-import re
-import random
 from pydantic import BaseModel
 from typing import Any, Optional, List
-import yfinance as yf
 import ollama
 from agents.data_analyst_agent import analyze_csv
 from agents.researcher_agent import web_scrape
 from agents.context_memory import save_context, get_context_text
-from agents.information_retrieval_agent import fetch_stock_data
+from agents.stock_analysis_agent import extract_tickers, fetch_stock_data, format_stock_data
 from helpers.llm_utils import clean_llm_json
+from helpers.agent_trace import emit_trace, traced_call
 
 # ----------------------------
 # Schemas
@@ -53,78 +51,6 @@ def handle_csv_upload(file_path: str) -> pd.DataFrame:
         return pd.read_csv(file_path)
     except Exception as e:
         raise ValueError(f"Error reading CSV file: {e}")
-
-# ----------------------------
-# Ticker extraction
-# ----------------------------
-FALLBACK_FIN_TICKERS = ["HSBC", "UBS"]
-
-def extract_tickers(text: str) -> list[str]:
-    tickers = re.findall(r'\b[A-Z]{1,5}\b', text)
-    valid_tickers = [t for t in tickers if t not in ["API"]]
-    if not valid_tickers:
-        valid_tickers = random.sample(FALLBACK_FIN_TICKERS, k=min(2, len(FALLBACK_FIN_TICKERS)))
-    return list(set(valid_tickers))
-
-# ----------------------------
-# Fetch stock data
-# ----------------------------
-
-"""
-
-def fetch_stock_data(ticker: str) -> DirectAnswer:
-    try:
-        stock = yf.Ticker(ticker)
-        fast = stock.fast_info
-
-        if not fast or fast.get("lastPrice") is None:
-            return DirectAnswer(
-                answer={},
-                reasoning=f"No financial data found for ticker '{ticker}' (possibly invalid or delisted)",
-                confidence=0.0
-            )
-
-        key_data = {
-            "symbol": ticker.upper(),
-            "lastPrice": fast.get("lastPrice"),
-            "marketCap": fast.get("marketCap"),
-            "yearHigh": fast.get("yearHigh"),
-            "yearLow": fast.get("yearLow"),
-            "sharesOutstanding": fast.get("sharesOutstanding"),
-        }
-
-        return DirectAnswer(answer=key_data, reasoning=f"Fetched Yahoo Finance fast_info data for ticker '{ticker}'.", confidence=0.95)
-
-    except Exception as e:
-        return DirectAnswer(
-            answer={},
-            reasoning=f"Error fetching data for ticker '{ticker}': {e}",
-            confidence=0.0
-        )
-
-"""
-
-# ----------------------------
-# Summarize stock (optional)
-# ----------------------------
-def summarize_stock(ticker: str) -> str:
-    result = fetch_stock_data(ticker)
-    if not result.answer:
-        return f"Cannot summarize: {result.reasoning}"
-
-    prompt = f"""
-You are a financial analyst. Analyse this stock data in lots of detail, include key metrics, in 3-4 concise sentences:
-
-{json.dumps(result.answer, indent=2)}
-
-Return strictly plain text.
-"""
-    try:
-        response = ollama.chat(model="gemma3:4b", messages=[{"role": "user", "content": prompt}])
-        return response["message"]["content"].strip()
-    except Exception as e:
-        print("Unable to summarise stock data:")
-        return f"Unable to summarise stock data: {e}"
 
 # ----------------------------
 # Select tools dynamically
@@ -184,48 +110,48 @@ def generate_answer(question: str, tools_used: MultiToolCall, data: Optional[pd.
 
     for tool in tools_used.tools:
         if tool.tool == "csv":
-            res = analyze_csv(df=data)
+            emit_trace("CSV data", "Data Analyst Agent", status="running")
+            res = traced_call("Data Analyst Agent", "csv / LLM analysis", analyze_csv, df=data)
             agent_outputs["csv"] = res.dict()
-            print("[DEBUG] [40% COMPLETED] CSV analysis complete")
+            print("██████████░░░░░░░░░░░░░░░ 40% \nCSV analysis complete")
 
         elif tool.tool == "api_call":
             tickers = extract_tickers(tool.details or question)
-            print("[DEBUG] [45% COMPLETED] ticker(s) extracted", tickers)
+            print("███████████░░░░░░░░░░░░░░ 45% \nticker(s) extracted", tickers)
             api_results = {}
             for ticker in tickers:
                 count = 1
-                res = fetch_stock_data(ticker)
-                print(f"[DEBUG] [50% COMPLETED] API call complete for ticker {count}: ", ticker)
+                res = traced_call("Stock Analysis Agent", f"api_call / Yahoo Finance / {ticker}", fetch_stock_data, ticker)
+                print(f"█████████████░░░░░░░░░░░░ 50% \nAPI call complete for ticker {count}: ", ticker)
                 if res.answer:
-                    formatted = (
-                        f"Symbol: {res.answer.get('symbol')}\n"
-                        f"Last Price: {res.answer.get('lastPrice')}\n"
-                        f"Market Cap: {res.answer.get('marketCap')}\n"
-                        f"52-Week High: {res.answer.get('yearHigh')}\n"
-                        f"52-Week Low: {res.answer.get('yearLow')}\n"
-                        f"Shares Outstanding: {res.answer.get('sharesOutstanding')}"
-                    )
+                    formatted = format_stock_data(res.answer)
                     api_results[ticker] = {"raw": res.dict(), "formatted": formatted}
-                    print("Stock data found for: ", ticker)
+                    print("stock data found for: ", ticker)
                 else:
                     api_results[ticker] = res.dict()
-                    print("Stock data not found for:", ticker)
+                    print("stock data not found for:", ticker)
                 count += 1
 
             agent_outputs["api_call"] = api_results
 
         elif tool.tool == "web_scrape":
-            res = web_scrape(query=question)
+            emit_trace("Question", "Research Agent", status="running")
+            res = traced_call("Research Agent", "web_scrape", web_scrape, query=question)
             agent_outputs["web_scrape"] = res.dict()
-            print("[DEBUG] [50% COMPLETED] web scraping complete")
+            print("██████████████░░░░░░░░░░░ 55% \nweb scraping complete")
 
         else:
-            agent_outputs[tool.tool] = {"answer": None, "reasoning": "Tool not implemented", "confidence": 0.0}
+            agent_outputs[tool.tool] = {"answer": None, "reasoning": "tool not implemented", "confidence": 0.0}
+
+        agent = {"csv": "Data Analyst Agent", "api_call": "Stock Analysis Agent",
+                 "web_scrape": "Research Agent"}.get(tool.tool, tool.tool)
+        emit_trace(agent, f"{tool.tool} result data", "Final Answer Agent",
+                   status="completed" if tool.tool in {"csv", "api_call", "web_scrape"} else "warning")
 
     save_context(question, agent_outputs)
     context_text = get_context_text()
 
-    print("[DEBUG] [55% COMPLETED] web scraping complete")
+    print("██████████████████░░░░░░░ 70% \ntool outputs collected for final answer")
 
     planner_prompt = f"""
 You are a reasoning agent.
@@ -246,17 +172,17 @@ Instructions:
 - Return JSON with keys: answer, reasoning, confidence
 """
 
-    print("[DEBUG] [Attempting to generate final answer]")
+    print("attempting to generate final answer")
 
-    response = ollama.chat(model="gemma3:4b", messages=[{"role": "user", "content": planner_prompt}])
+    response = traced_call("Final Answer Agent", "LLM / gemma3:4b", ollama.chat, model="gemma3:4b", messages=[{"role": "user", "content": planner_prompt}])
     raw_output = clean_llm_json(response["message"]["content"].strip())
 
-    print("[DEBUG] [Successfully generated final answer]")
+    print("successfully generated final answer")
 
     try:
         parsed = json.loads(raw_output)
     except json.JSONDecodeError:
-        parsed = {"answer": "Unable to generate final answer", "reasoning": "Parsing error", "confidence": 0.0}
+        parsed = {"answer": "unable to generate final answer", "reasoning": "parsing error", "confidence": 0.0}
 
     return DirectAnswer(**parsed)
 

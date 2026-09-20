@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from serpapi import GoogleSearch
 import ollama
 from helpers.llm_utils import clean_llm_json
+from helpers.agent_trace import traced_call
 from dotenv import load_dotenv
 import os
 
@@ -62,7 +63,7 @@ def web_scrape(query: str) -> DirectAnswer:
         "num": 3
     }
     search = GoogleSearch(params)
-    results = search.get_dict()
+    results = traced_call("Research Agent", "api_call / Google Search", search.get_dict)
     organic_results = results.get("organic_results", [])[:3]
 
     if not organic_results:
@@ -79,8 +80,8 @@ def web_scrape(query: str) -> DirectAnswer:
         title = res.get("title")
         snippet = res.get("snippet")
 
-        content = scrape_page(url)
-        summary = summarize_content(title, url, content) if not content.startswith("ERROR") else ""
+        content = traced_call("Research Agent", f"web_scrape / {url}", scrape_page, url)
+        summary = traced_call("Research Agent", f"LLM summary / {title}", summarize_content, title, url, content) if not content.startswith("ERROR") else ""
 
         scraped_results.append({
             "title": title,
