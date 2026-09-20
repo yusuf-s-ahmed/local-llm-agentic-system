@@ -2,7 +2,7 @@
 
 This project is a multi-agent AI system that dynamically selects between internal data analysis, financial stock data from APIs, and web scraping tools based on user questions.
 
-https://github.com/user-attachments/assets/d7f9d383-891a-4e74-abd8-4a2bfb86256c
+https://github.com/user-attachments/assets/163f22e7-0b8b-46ae-bd3b-c7bf65bc68d4
 
 There are 5 agents that communicate their outputs with each other:
 
